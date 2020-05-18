@@ -21,8 +21,8 @@ function App() {
     <ThemeProvider theme={themeMode}>
       <GlobalStyles />
       <div className="container">
-        <Home />
         <ToggleTheme onClick={() => toggleTheme()} theme={theme}/>
+        <Home />
       </div>
     </ThemeProvider>
   );
