@@ -2,15 +2,15 @@ import React, { useState, useEffect, useRef, useContext } from "react";
 import mapboxgl from "mapbox-gl";
 import { ThemeContext } from "styled-components";
 import axios from "axios";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faSearch, faSpinner } from "@fortawesome/free-solid-svg-icons";
 
 import "./Home.scss";
 import Card from "../Components/Card";
 import InputContainer from "../Components/InputContainer";
 import Input from "../Components/Input";
 import ButtonLoader from "../Components/ButtonLoader";
-
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faSearch, faSpinner } from "@fortawesome/free-solid-svg-icons";
+import Alert from "../Components/Alert";
 
 mapboxgl.accessToken =
   "pk.eyJ1Ijoic3RheXRydWVjbCIsImEiOiJja2FjN3F5bXEwMTk2MnlvNjBncDh1bTI2In0.-R60rCLTCklhTfY9CqPnAA";
@@ -25,6 +25,7 @@ export default function Home() {
   const [isValidIp, setIsValidIp] = useState(false);
   const [currentData, setCurrentData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null)
 
   const getLocationForIp = async (ip) => {
     setIsLoading(true);
@@ -53,10 +54,32 @@ export default function Home() {
   };
 
   const onSearchPress = async () => {
+    if(!isIp(text)){
+      return;
+    }
     setCurrentData(null);
+    setError(null);
     const response = await getLocationForIp(text);
 
+    // catch "ECONNABORTED" and other network errors
+    if(response.error){
+      return setError(response.error.message);
+    }
+
+    if(response.status !== 'success'){
+      return setError(response.message);
+    }
+
     setCurrentData(response);
+
+    // add marker to map
+    const coords = [response.lon, response.lat];
+    const marker = new mapboxgl.Marker()
+      .setLngLat(coords)
+      .addTo(mapInstance.current);
+    
+    // Center to marker
+    mapInstance.current.setCenter(coords).zoomTo(15);
   };
 
   const onChange = async (event) => {
@@ -78,7 +101,7 @@ export default function Home() {
       container: mapContainer.current,
       style: "mapbox://styles/mapbox/" + themeContext.map,
       zoom: 1,
-    });
+    }).addControl(new mapboxgl.NavigationControl({ showCompass: false }));
 
     mapInstance.current = map;
 
@@ -98,7 +121,7 @@ export default function Home() {
         <Card className="mainCard">
           <InputContainer>
             <FontAwesomeIcon icon={faSearch} />
-            <Input value={text} onChange={onChange} />
+            <Input value={text} onChange={onChange} onEnter={onSearchPress} isValid={isValidIp}/>
             <ButtonLoader
               disabled={!isValidIp || isLoading}
               isLoading={isLoading}
@@ -109,10 +132,12 @@ export default function Home() {
           <div ref={mapContainer} className="mapContainer" />
         </Card>
 
+        {error && <Alert message={error} />}
+
         {currentData && (
           <Card style={{ marginTop: 14 }}>
             <h4>Resultado</h4>
-            <hr/>
+            <hr />
             <dl className="row">
               <dt className="col-sm-3">País</dt>
               <dd className="col-sm-9">{currentData.country}</dd>
@@ -132,5 +157,3 @@ export default function Home() {
     </div>
   );
 }
-
-// https://docs.mapbox.com/mapbox-gl-js/example/setstyle/
