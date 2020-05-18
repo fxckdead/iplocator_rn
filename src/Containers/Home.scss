@@ -1,0 +1,14 @@
+.mainCard {
+  height: 400px;
+  overflow: hidden;
+  display: flex;
+  padding: 0!important;
+}
+
+.mapContainer {
+  flex: 1;
+}
+
+.mapboxgl-ctrl-attrib {
+  display: none;
+}
